@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="static/styles.css" />
+    <title>QR Code PDF Generator</title>
+</head>
+<body>
+    <h1>Generate PDF with QR Codes</h1>
+    <form id="pdfForm" action="/generate_pdf" method="POST" enctype="multipart/form-data">
+        <label for="inputfolder">Input Folder:</label>
+        <input type="file" id="inputfolder" name="inputfolder" multiple>
+        <br>
+        
+        <label for="outputfolder">Output Folder:</label>
+        <input type="text" id="outputfolder" name="outputfolder">
+        <br>
+        
+        <label for="titlepage">Title Page:</label>
+        <input type="text" id="titlepage" name="titlepage">
+        <br>
+
+        <label for="outputfile">Output File Name:</label>
+        <input type="text" id="outputfile" name="outputfile">
+        <br>
+
+        <button type="submit">Submit</button>
+        <div class="progress">
+            <div id="progressBar" class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+        </div>
+        <div id="message" class="mt-3"></div>
+    </form>
+
+    {% if message %}
+    <p>{{ message }}</p>
+    {% endif %}
+
+    {% if message %}
+    <p>{{ downloadpdf|safe }}</p>
+    {% endif %}
+    
+    <script>
+        document.getElementById('pdfForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+            const xhr = new XMLHttpRequest();
+
+            xhr.open('POST', form.action, true);
+
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    const progressBar = document.getElementById('progressBar');
+                    progressBar.style.width = percentComplete + '%';
+                    progressBar.setAttribute('aria-valuenow', percentComplete);
+                    progressBar.textContent = Math.round(percentComplete) + '%';
+                }
+            });
+
+            xhr.addEventListener('load', function() {
+                const progressBar = document.getElementById('progressBar');
+                if (xhr.status === 200) {
+                    progressBar.style.width = '100%';
+                    progressBar.setAttribute('aria-valuenow', 100);
+                    progressBar.textContent = '100%';
+                    document.getElementById('message').textContent = 'Upload complete!';
+
+                    // Ensure the output file ends with .pdf, but don't append it again if it's already there
+                    let outputfile = form.outputfile.value;
+                    if (!outputfile.endsWith('.pdf')) {
+                        outputfile += '.pdf';
+                    }
+                // Redirect to the completion route
+                window.location.href = '/generate_pdf_complete?message=Upload complete!&filename=' + encodeURIComponent(outputfile);
+                } else {
+                    document.getElementById('message').textContent = 'Upload failed!';
+                    // Stop the progress bar animation
+                    clearInterval(interval);
+                }
+                    });
+
+            xhr.send(formData);
+
+
+            // Optional: Initial animation to show some progress before the actual upload starts
+            const progressBar = document.getElementById('progressBar');
+            let width = 0;
+            const interval = setInterval(function() {
+                if (width >= 100) {
+                    clearInterval(interval);
+                } else {
+                    width++;
+                    progressBar.style.width = width + '%';
+                    progressBar.setAttribute('aria-valuenow', width);
+                    progressBar.textContent = width + '%';
+                }
+            }, 500); // Adjust the interval time as needed
+        });
+
+    </script>
+
+
+</body>
+</html>
